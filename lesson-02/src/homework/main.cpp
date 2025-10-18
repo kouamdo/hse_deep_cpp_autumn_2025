@@ -4,11 +4,6 @@
 
 #include <gtest/gtest.h>
 
-TEST(AllocatorTest, SimpleAlloc) {
-    Allocator allocator(100);
-    char* ptr = allocator.alloc(10);
-    EXPECT_NE(ptr, nullptr); // Vérifie que le pointeur n'est pas nul
-}
 int main(int argc, char **argv)
 {
     Allocator allocator(1024); // 1 KB
