@@ -31,15 +31,18 @@ class TokenParser
             std::istringstream iss(line);
             std::string token;
             while (iss >> token) {
-                if (isAllDigits(token)) {
-                    uint64_t value = 0;
-                    auto result = std::from_chars(token.data(), token.data() + token.size(), value);
-                    if (result.ec == std::errc() && result.ptr == token.data() + token.size()) {
+                if (IsNumber(token)) {
+                    try
+                    {
+                        uint64_t value = std::stoull(token);
                         if (digitTokenCallback_) digitTokenCallback_(value);
-                        continue;
+                    }
+                    catch(const std::exception& e)
+                    {
+                        if (stringTokenCallback_) stringTokenCallback_(token);
                     }
                 }
-                if (stringTokenCallback_) stringTokenCallback_(token);
+                else if(stringTokenCallback_) stringTokenCallback_(token);
             }
 
             if (endCallback_) endCallback_();
@@ -47,13 +50,12 @@ class TokenParser
 
     private:
 
-        bool isAllDigits(const std::string& token) {
-            for (char c : token) {
-                if (!std::isdigit(static_cast<unsigned char>(c))) {
-                    return false;
-                }
-            }
-            return !token.empty();
+        bool IsNumber(const std::string& token) noexcept {
+            if (token.empty()) return false;
+
+            for (char c : token) if (c < '0' || c > '9') return false;
+    
+            return true;
         }
     
         std::function<void()> startCallback_;
