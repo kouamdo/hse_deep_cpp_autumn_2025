@@ -4,7 +4,7 @@
 #include <charconv>
 #include <system_error>
 #include <cctype>
-#include "include/TokenParser.hpp"
+#include "TokenParser.hpp"
 
 int main() {
     TokenParser parser;
