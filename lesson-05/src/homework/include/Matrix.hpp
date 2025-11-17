@@ -30,6 +30,8 @@ public:
 
     int32_t& at(size_t i, size_t j);
 
+    size_t getColumns() const {}
+    size_t getRows() const {}
     Matrix& operator*=(int32_t val);
     Matrix operator+(Matrix& other) const;
     bool operator==(Matrix& other) const;

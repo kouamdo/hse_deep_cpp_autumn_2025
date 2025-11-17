@@ -26,6 +26,10 @@ Matrix::Matrix(size_t r, size_t c) : rows(r), cols(c)
         rows_data[j] = ProxyRow(data[j], cols);
 }
 
+size_t Matrix::getRows() const { return rows; }
+
+size_t Matrix::getColumns() const { return cols; }
+
 Matrix::~Matrix()
 {
     for (size_t i = 0; i < rows; i++)
