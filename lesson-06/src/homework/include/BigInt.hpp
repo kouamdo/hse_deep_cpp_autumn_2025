@@ -9,7 +9,7 @@ class BigInt{
     private:
         char* number;
         size_t number_length ;
-        bool pos ;
+        bool pos = true ;
         int64_t bigNumber;
 
     public:

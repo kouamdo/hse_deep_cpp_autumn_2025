@@ -10,11 +10,15 @@ BigInt::BigInt(const char* numberchar)  {
     size_t i = 0 ;
 
     while (i < number_length && numberchar[i] > 0 )
-         {number[i] = numberchar[i];
-         i++;}
+         {
+            number[i] = numberchar[i];
+            i++;
+            pos = false ;
+        }
 
-    if (i < number_length ) throw std::out_of_range("bad and signed content") ;
+    if (i < number_length ) throw std::invalid_argument("bad and signed content") ;
 
+    number_length = i ;
 
     bigNumber = std::stoi(numberchar) ;
 
