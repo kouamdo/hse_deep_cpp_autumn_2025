@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "Format.h" 
+#include "../include/Format.hpp" 
 TEST(FormatTest, Basic) {
     Format<int> f("Bonjour {0}!", 42);
     f.parse();
