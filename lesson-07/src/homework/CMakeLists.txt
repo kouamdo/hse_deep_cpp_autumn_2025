@@ -14,11 +14,11 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 
 add_library(SerializerLib
-    Serializer.cpp
-    Deserializer.cpp
+    src/Serializer.cpp
+    src/Deserializer.cpp
 )
 
-add_executable(SerializerTest main_test.cpp)
+add_executable(SerializerTest tests/main_test.cpp)
 
 target_link_libraries(SerializerTest
     SerializerLib
