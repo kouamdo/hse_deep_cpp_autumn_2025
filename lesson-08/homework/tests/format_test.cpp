@@ -1,7 +1,5 @@
 #include <gtest/gtest.h>
-#include "Format.h"  // Votre classe Format ou fonction format
-
-// Cas simple : un argument
+#include "Format.h" 
 TEST(FormatTest, Basic) {
     Format<int> f("Bonjour {0}!", 42);
     f.parse();

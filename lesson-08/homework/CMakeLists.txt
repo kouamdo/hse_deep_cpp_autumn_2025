@@ -12,7 +12,7 @@ FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 
-add_executable(FormatTests format_test.cpp Format.cpp)  # Ajoutez autres fichiers sources si nécessaire
+add_executable(FormatTests ../tests/format_test.cpp ../src/Format.cpp) 
 
 target_link_libraries(FormatTests gtest_main)
 
