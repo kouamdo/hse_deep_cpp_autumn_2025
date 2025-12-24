@@ -17,9 +17,15 @@ class Deserializer
         std::istream& in_ ;
 
         template <class T, class... Args>
-        Error process(T& val, Args&... args);
+        Error process(T& val, Args&... args)
+        {
+            Error err = load(val);
+            if (err != Error::NoError)
+                return err;
+            return process(args...);
+        }
 
-        Error process();
+        Error process() { return Error::NoError; }
         
 
     public:
@@ -42,7 +48,7 @@ class Deserializer
 
         Error load() ;
         Error load(bool& value);
-        Error load(uint64_t &&arg);      
+        Error load(uint64_t &arg);      
 };
 
 #endif

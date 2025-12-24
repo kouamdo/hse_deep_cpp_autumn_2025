@@ -7,17 +7,23 @@
 
 #pragma once
 
+enum class Error
+{
+    NoError,
+    CorruptedArchive
+};
+
 struct Data
 {
     uint64_t a;
     bool b;
     uint64_t c;
-};
 
-enum class Error
-{
-    NoError,
-    CorruptedArchive
+    template <class SerializerT>
+    Error serialize(SerializerT& serializer)
+    {
+        return serializer(a, b, c);
+    }
 };
 
 class Serializer
@@ -43,11 +49,24 @@ class Serializer
         template <class... ArgsT>
         Error operator()(ArgsT... args)
         {
-            return process(args...);
+            return process(std::forward<ArgsT>(args)...);
         }
 
-        Error process(bool &&arg);
-        Error process(uint64_t &&arg);
+        // variadic dispatcher implemented in-header
+        Error process() { return Error::NoError; }
+
+        template <class T, class... Args>
+        Error process(T&& val, Args&&... args)
+        {
+            Error err = process(std::forward<T>(val));
+            if (err != Error::NoError)
+                return err;
+            return process(std::forward<Args>(args)...);
+        }
+
+        // overloads for supported types
+        Error process(bool arg);
+        Error process(uint64_t arg);
 };
 
 #endif

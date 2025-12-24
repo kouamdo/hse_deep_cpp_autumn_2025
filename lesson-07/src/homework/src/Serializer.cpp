@@ -2,17 +2,14 @@
 #include <string>
 #include <sstream>
 
-Error Serializer::process(bool &&arg)
+Error Serializer::process(bool arg)
 {
-    this->out_ << ((arg == true) ? "true " : "false ") 
-        << Serializer::Separator ;
-
-    return Error::NoError ;
+    this->out_ << (arg ? "true" : "false") << Serializer::Separator;
+    return Error::NoError;
 }
 
-Error Serializer::process(uint64_t &&arg)
+Error Serializer::process(uint64_t arg)
 {
-    this->out_ << arg << Serializer::Separator ;
-
+    this->out_ << arg << Serializer::Separator;
     return Error::NoError;
 }

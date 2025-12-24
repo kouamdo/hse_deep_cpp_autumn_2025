@@ -3,19 +3,8 @@
 #include <string>
 #include <sstream>
 
-template <class T, class... Args>
-Error Deserializer::process(T& val, Args&... args)
-{
-    Error err = load(val);
-    if (err != Error::NoError)
-        return err;
-    return process(args...);
-}
-
-Error Deserializer::process()
-{
-    return Error::NoError;
-}
+// Template variadic `process` implemented in header `Deserializer.hpp`.
+// Non-template overloads / helpers remain here.
 
 Error Deserializer::load() {
     return Error::NoError;
@@ -36,7 +25,7 @@ Error Deserializer::load(bool& value)
     return Error::NoError;
 }
 
-Error Deserializer::load(uint64_t &&arg)
+Error Deserializer::load(uint64_t &arg)
 {
     std::string text;
     in_ >> text;
