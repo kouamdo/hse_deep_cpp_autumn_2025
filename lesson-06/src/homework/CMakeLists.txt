@@ -14,10 +14,11 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 
 # Bibliothèque BigInt
-add_library(BigInt src/BigInt.cpp src/BigInt.h)
+add_library(BigInt src/BigInt.cpp)
+target_include_directories(BigInt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# Exécutable de test
-add_executable(BigIntTests tests/test_bigint.cpp)
+# Exécutable de test (ajout des tests supplémentaires)
+add_executable(BigIntTests tests/test_bigint.cpp tests/test_bigint_extra.cpp)
 
 target_link_libraries(BigIntTests BigInt gtest_main)
 

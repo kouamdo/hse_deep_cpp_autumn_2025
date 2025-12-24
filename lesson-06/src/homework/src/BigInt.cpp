@@ -1,208 +1,235 @@
 #include "../include/BigInt.hpp"
-#include <string.h>
+#include <cstring>
+#include <cstdlib>
 
-BigInt::BigInt() 
-{
-        number_length = 1;
-        number = new char[1]{0};
-        pos = true;
+// Helper: remove leading zeros in magnitude representation
+void BigInt::trim() {
+    while (size_ > 1 && digits_[size_ - 1] == 0) {
+        --size_;
+    }
+    if (size_ == 1 && digits_[0] == 0) positive_ = true; // zero is positive
 }
 
-BigInt::BigInt(const BigInt& other)
-{
-    pos = other.pos ;
-    number_length = other.number_length ;
-    number = new char[number_length];
-    for (size_t i = 0; i < number_length; i++)
-        number[i] = other.number[i];
+int BigInt::absCompare(const BigInt& a, const BigInt& b) {
+    if (a.size_ != b.size_) return a.size_ > b.size_ ? 1 : -1;
+    for (size_t i = a.size_; i-- > 0;) {
+        if (a.digits_[i] != b.digits_[i]) return a.digits_[i] > b.digits_[i] ? 1 : -1;
+    }
+    return 0;
 }
 
-BigInt::BigInt(BigInt& other) noexcept
-{
-    pos = other.pos ;
-    number_length = other.number_length ;
-    number = new char[number_length];
-    for (size_t i = 0; i < number_length; i++)
-        number[i] = other.number[i];
+BigInt BigInt::addMag(const BigInt& a, const BigInt& b) {
+    size_t n = std::max(a.size_, b.size_);
+    BigInt res;
+    delete[] res.digits_;
+    res.digits_ = new char[n + 1];
+    res.size_ = n + 1;
+    int carry = 0;
+    for (size_t i = 0; i < n; ++i) {
+        int da = i < a.size_ ? a.digits_[i] : 0;
+        int db = i < b.size_ ? b.digits_[i] : 0;
+        int sum = da + db + carry;
+        res.digits_[i] = sum % 10;
+        carry = sum / 10;
+    }
+    res.digits_[n] = carry;
+    res.trim();
+    return res;
+}
+
+BigInt BigInt::subMag(const BigInt& a, const BigInt& b) {
+    // assumes |a| >= |b|
+    BigInt res;
+    delete[] res.digits_;
+    res.digits_ = new char[a.size_];
+    res.size_ = a.size_;
+    int borrow = 0;
+    for (size_t i = 0; i < a.size_; ++i) {
+        int da = a.digits_[i];
+        int db = i < b.size_ ? b.digits_[i] : 0;
+        int diff = da - db - borrow;
+        if (diff < 0) { diff += 10; borrow = 1; }
+        else borrow = 0;
+        res.digits_[i] = diff;
+    }
+    res.trim();
+    return res;
+}
+
+// Constructors / dtor / assign
+BigInt::BigInt() {
+    size_ = 1;
+    digits_ = new char[1];
+    digits_[0] = 0;
+    positive_ = true;
+}
+
+BigInt::BigInt(const char* s) {
+    if (!s) throw std::invalid_argument("null string");
+    std::string str(s);
+    // remove leading/trailing spaces
+    size_t pos = 0;
+    while (pos < str.size() && isspace(static_cast<unsigned char>(str[pos]))) ++pos;
+    size_t end = str.size();
+    while (end > pos && isspace(static_cast<unsigned char>(str[end - 1]))) --end;
+    if (pos >= end) throw std::invalid_argument("empty string");
+    bool sign = true;
+    if (str[pos] == '+') { sign = true; ++pos; }
+    else if (str[pos] == '-') { sign = false; ++pos; }
+    if (pos >= end) throw std::invalid_argument("no digits");
+    // skip leading zeros
+    while (pos < end && str[pos] == '0') ++pos;
+    if (pos == end) {
+        // zero
+        size_ = 1;
+        digits_ = new char[1]; digits_[0] = 0; positive_ = true; return;
+    }
+    size_ = end - pos;
+    digits_ = new char[size_];
+    for (size_t i = 0; i < size_; ++i) {
+        char c = str[end - 1 - i]; // least significant first
+        if (c < '0' || c > '9') { delete[] digits_; digits_ = nullptr; throw std::invalid_argument("bad digit"); }
+        digits_[i] = c - '0';
+    }
+    positive_ = sign;
+    trim();
+}
+
+BigInt::BigInt(const std::string& s) : BigInt(s.c_str()) {}
+
+BigInt::BigInt(const BigInt& other) {
+    size_ = other.size_;
+    positive_ = other.positive_;
+    digits_ = new char[size_];
+    for (size_t i = 0; i < size_; ++i) digits_[i] = other.digits_[i];
+}
+
+BigInt::BigInt(BigInt&& other) noexcept {
+    digits_ = other.digits_;
+    size_ = other.size_;
+    positive_ = other.positive_;
+    other.digits_ = nullptr;
+    other.size_ = 0;
+    other.positive_ = true;
+}
+
+BigInt& BigInt::operator=(const BigInt& other) {
+    if (this == &other) return *this;
+    delete[] digits_;
+    size_ = other.size_;
+    positive_ = other.positive_;
+    digits_ = new char[size_];
+    for (size_t i = 0; i < size_; ++i) digits_[i] = other.digits_[i];
+    return *this;
+}
+
+BigInt& BigInt::operator=(BigInt&& other) noexcept {
+    if (this == &other) return *this;
+    delete[] digits_;
+    digits_ = other.digits_;
+    size_ = other.size_;
+    positive_ = other.positive_;
+    other.digits_ = nullptr;
+    other.size_ = 0;
+    other.positive_ = true;
+    return *this;
 }
 
 BigInt::~BigInt() {
-    delete[] number;
+    delete[] digits_;
 }
 
-BigInt::BigInt(const char* numberchar)  {
-
-    number_length = strlen(numberchar) ;
-
-    size_t i = 0 ; pos = true;
-
-    if (numberchar[i] == '-') {
-        pos = false ; i = 1 ; number_length -- ;
-    } 
-
-    number = new char[number_length] ;
-
-    while (i < number_length && (numberchar[i] > '0' ||  numberchar[i] < '9') )
-    {
-        number[i] = numberchar[i] - '0';
-
-        i++;
-    }
-
-    if (i < number_length ) 
-    {
-        throw std::invalid_argument("bad and signed content") ;
-        delete[] number ;
-        pos = false ;
-    }
+std::string BigInt::toString() const {
+    std::string s;
+    if (!positive_) s.push_back('-');
+    for (size_t i = 0; i < size_; ++i) s.push_back(char('0' + digits_[size_ - 1 - i]));
+    return s;
 }
 
-bool BigInt::operator==(BigInt& other) const {
-    if (pos != other.pos) return false;
-    if (number_length != other.number_length) return false;
-    for (size_t i = 0; i < number_length; i++) {
-        if (number[i] != other.number[i]) return false;
-    }
+// comparisons
+bool BigInt::operator==(const BigInt& other) const {
+    if (positive_ != other.positive_) return false;
+    if (size_ != other.size_) return false;
+    for (size_t i = 0; i < size_; ++i) if (digits_[i] != other.digits_[i]) return false;
     return true;
 }
 
-std::ostream& operator<<(std::ostream& os, const BigInt& bi) {
-    if (!bi.pos) os << '-';
-    for (size_t i = 0; i < bi.number_length; i++) {
-        os << static_cast<int>(bi.number[i]);
-    }
-    return os;
-}
-
-
-bool BigInt::operator!=(BigInt& other) const {
-    return !(*this == other);
-}
+bool BigInt::operator!=(const BigInt& other) const { return !(*this == other); }
 
 bool BigInt::operator<(const BigInt& other) const {
-    if (pos != other.pos) return !pos; // négatif < positif
-    if (pos) { // deux positifs
-        if (number_length != other.number_length)
-            return number_length < other.number_length;
-        for (size_t i = 0; i < number_length; i++) {
-            if (number[i] != other.number[i])
-                return number[i] < other.number[i];
-        }
-        return false; // égaux
-    } else { // deux négatifs (inverser la logique)
-        if (number_length != other.number_length)
-            return number_length > other.number_length;
-        for (size_t i = 0; i < number_length; i++) {
-            if (number[i] != other.number[i])
-                return number[i] > other.number[i];
-        }
-        return false;
-    }
+    if (positive_ != other.positive_) return !positive_;
+    int cmp = absCompare(*this, other);
+    if (positive_) return cmp < 0;
+    else return cmp > 0;
 }
 
-bool BigInt::operator>(BigInt& other) const {
-    return other < *this;
-}
+bool BigInt::operator>(const BigInt& other) const { return other < *this; }
+bool BigInt::operator<=(const BigInt& other) const { return !(*this > other); }
+bool BigInt::operator>=(const BigInt& other) const { return !(*this < other); }
 
-// Plus petit ou égal
-bool BigInt::operator<=( BigInt& other) const {
-    return !(*this > other);
-}
-
-// Plus grand ou égal
-bool BigInt::operator>=( BigInt& other) const {
-    return !(*this < other);
-}
-
-BigInt& BigInt::operator+(const BigInt& other) const {
-        size_t max_len = std::max(number_length, other.number_length);
-        BigInt result;
-        result.pos = true;
-        delete[] result.number;
-        result.number = new char[max_len + 1]; // +1 pour la retenue possible
-        result.number_length = max_len;
-
-        int carry = 0;
-        size_t i = 0;
-        for (; i < max_len; i++) {
-            int a_digit = i < number_length ? number[number_length - 1 - i] : 0;  // chiffres de droite à gauche
-            int b_digit = i < other.number_length ? other.number[other.number_length - 1 - i] : 0;
-            int sum = a_digit + b_digit + carry;
-            result.number[max_len - i] = sum % 10; // stocker chiffre
-            carry = sum / 10;
-        }
-        if (carry > 0) {
-            // on décale le tableau pour ajouter la retenue en tête
-            char* temp = new char[max_len + 2];
-            temp[0] = carry;
-            for (i = 0; i <= max_len; i++)
-                temp[i + 1] = result.number[i];
-            delete[] result.number;
-            result.number = temp;
-            result.number_length = max_len + 1;
-        }
-        return result;
-    }
-
-BigInt& BigInt::operator-(const BigInt& other) const {
-    if (*this < other) {
-        throw std::invalid_argument("Soustraction non supportée pour this < other dans cette version simple");
-    }
-
-    BigInt result;
-    result.pos = true;
-    delete[] result.number;
-    result.number = new char[number_length];
-    result.number_length = number_length;
-
-    int borrow = 0;
-    for (size_t i = 0; i < number_length; i++) {
-        int a_digit = number[number_length - 1 - i];
-        int b_digit = i < other.number_length ? other.number[other.number_length - 1 - i] : 0;
-
-        int diff = a_digit - b_digit - borrow;
-        if (diff < 0) {
-            diff += 10;
-            borrow = 1;
+// arithmetic
+BigInt BigInt::operator+(const BigInt& other) const {
+    if (positive_ == other.positive_) {
+        BigInt res = addMag(*this, other);
+        res.positive_ = positive_;
+        return res;
+    } else {
+        int cmp = absCompare(*this, other);
+        if (cmp == 0) return BigInt();
+        if (cmp > 0) { // |this| > |other|
+            BigInt res = subMag(*this, other);
+            res.positive_ = positive_;
+            return res;
         } else {
-            borrow = 0;
+            BigInt res = subMag(other, *this);
+            res.positive_ = other.positive_;
+            return res;
         }
-
-        result.number[result.number_length - 1 - i] = diff;
     }
+}
 
-    // Supprimer les zéros non significatifs en tête
-    size_t new_len = result.number_length;
-    while (new_len > 1 && result.number[result.number_length - new_len] == 0) {
-        --new_len;
-    }
-
-    if (new_len != result.number_length) {
-        char* trimmed = new char[new_len];
-        for (size_t i = 0; i < new_len; i++) {
-            trimmed[i] = result.number[result.number_length - new_len + i];
+BigInt BigInt::operator-(const BigInt& other) const {
+    if (positive_ != other.positive_) {
+        BigInt res = addMag(*this, other);
+        res.positive_ = positive_;
+        return res;
+    } else {
+        int cmp = absCompare(*this, other);
+        if (cmp == 0) return BigInt();
+        if (cmp > 0) {
+            BigInt res = subMag(*this, other);
+            res.positive_ = positive_;
+            return res;
+        } else {
+            BigInt res = subMag(other, *this);
+            res.positive_ = !other.positive_;
+            return res;
         }
-        delete[] result.number;
-        result.number = trimmed;
-        result.number_length = new_len;
     }
-
-    return result;
 }
 
-BigInt& BigInt::operator+(int32_t rhs) const {
-    BigInt rhsBigInt(std::to_string(rhs).c_str());
-    return *this + rhsBigInt;  // utilise l'opérateur BigInt + BigInt
+BigInt BigInt::operator*(const BigInt& other) const {
+    BigInt res;
+    delete[] res.digits_;
+    res.size_ = size_ + other.size_;
+    res.digits_ = new char[res.size_];
+    for (size_t i = 0; i < res.size_; ++i) res.digits_[i] = 0;
+    for (size_t i = 0; i < size_; ++i) {
+        int carry = 0;
+        for (size_t j = 0; j < other.size_; ++j) {
+            int cur = res.digits_[i + j] + digits_[i] * other.digits_[j] + carry;
+            res.digits_[i + j] = cur % 10;
+            carry = cur / 10;
+        }
+        res.digits_[i + other.size_] += carry;
+    }
+    res.positive_ = (positive_ == other.positive_);
+    res.trim();
+    return res;
 }
 
-// Soustraction BigInt - int32_t
-BigInt& BigInt::operator-(int32_t rhs) const {
-    BigInt rhsBigInt(std::to_string(rhs).c_str());
-    return *this - rhsBigInt;  // utilise l'opérateur BigInt - BigInt
-}
+BigInt BigInt::operator+(int32_t rhs) const { return *this + BigInt(std::to_string(rhs)); }
+BigInt BigInt::operator-(int32_t rhs) const { return *this - BigInt(std::to_string(rhs)); }
+BigInt BigInt::operator*(int32_t rhs) const { return *this * BigInt(std::to_string(rhs)); }
 
-// Multiplication BigInt * int32_t
-BigInt& BigInt::operator*(int32_t rhs) const {
-    BigInt rhsBigInt(std::to_string(rhs).c_str());
-    return *this * rhsBigInt;  // utilise l'opérateur BigInt * BigInt
-}
+BigInt BigInt::operator-() const { BigInt r(*this); r.positive_ = !r.positive_; return r; }
