@@ -34,10 +34,24 @@ struct Node {
         }
         return current;
     }
+    const Node* minimum() const {
+        const Node* current = this;
+        while (current->left != nullptr) {
+            current = current->left;
+        }
+        return current;
+    }
     
     // Find maximum node in subtree
     Node* maximum() {
         Node* current = this;
+        while (current->right != nullptr) {
+            current = current->right;
+        }
+        return current;
+    }
+    const Node* maximum() const {
+        const Node* current = this;
         while (current->right != nullptr) {
             current = current->right;
         }
@@ -61,6 +75,19 @@ struct Node {
         }
         return p;
     }
+    const Node* successor() const {
+        const Node* current = this;
+        
+        if (current->right != nullptr) {
+            return current->right->minimum();
+        }
+        const Node* p = current->parent;
+        while (p != nullptr && current == p->right) {
+            current = p;
+            p = p->parent;
+        }
+        return p;
+    }
     
     // Find predecessor (previous in-order)
     Node* predecessor() {
@@ -73,6 +100,19 @@ struct Node {
         
         // Otherwise, go up until we find a node that is right child of its parent
         Node* p = current->parent;
+        while (p != nullptr && current == p->left) {
+            current = p;
+            p = p->parent;
+        }
+        return p;
+    }
+    const Node* predecessor() const {
+        const Node* current = this;
+        
+        if (current->left != nullptr) {
+            return current->left->maximum();
+        }
+        const Node* p = current->parent;
         while (p != nullptr && current == p->left) {
             current = p;
             p = p->parent;

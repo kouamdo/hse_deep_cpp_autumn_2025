@@ -1,16 +1,11 @@
 #include "../include/avl_tree.hpp"
 #include "../include/avl_node.hpp"
-#include "../include/avl_iterator.hpp"
 #include <algorithm>
 #include <utility>
 #include <iostream>
 
 namespace avl {
 
-// Exception implementations
-out_of_range::out_of_range(const std::string& what) : std::out_of_range(what) {}
-
-invalid_iterator::invalid_iterator(const std::string& what) : std::runtime_error(what) {}
 
 // Helper function to get height safely
 template<typename Key, typename T, typename Compare, typename Allocator>
@@ -135,9 +130,10 @@ Tree<Key, T, Compare, Allocator>::insert(const value_type& value) {
     root_ = insert_node(root_, nullptr, value, inserted);
     if (inserted) {
         ++size_;
-        return std::make_pair(iterator(inserted), true);
+        return std::make_pair(iterator(inserted, root_), true);
     }
-    return std::make_pair(iterator(find_node(value.first)), false);
+    node_type* found = find_node(value.first);
+    return std::make_pair(iterator(found, root_), false);
 }
 
 template<typename Key, typename T, typename Compare, typename Allocator>
@@ -153,18 +149,23 @@ Tree<Key, T, Compare, Allocator>::erase(iterator pos) {
     if (pos == end()) {
         return end();
     }
-    
+
+    // Save next key (if any) before deletion
+    auto next_it = pos;
+    ++next_it;
+    bool has_next = next_it != end();
+    Key next_key;
+    if (has_next) next_key = next_it->first;
+
     Key key = pos->first;
     bool removed = false;
     root_ = remove_node(root_, key, removed);
     if (removed) {
         --size_;
-        // Return iterator to next element
-        node_type* next_node = find_node(key);
-        if (next_node) {
-            next_node = next_node->successor();
-        }
-        return iterator(next_node);
+        if (has_next)
+            return find(next_key);
+        else
+            return end();
     }
     return ++pos;
 }
@@ -193,14 +194,14 @@ template<typename Key, typename T, typename Compare, typename Allocator>
 typename Tree<Key, T, Compare, Allocator>::iterator
 Tree<Key, T, Compare, Allocator>::find(const Key& key) {
     node_type* node = find_node(key);
-    return iterator(node);
+    return iterator(node, root_);
 }
 
 template<typename Key, typename T, typename Compare, typename Allocator>
 typename Tree<Key, T, Compare, Allocator>::const_iterator
 Tree<Key, T, Compare, Allocator>::find(const Key& key) const {
     node_type* node = find_node(key);
-    return const_iterator(node);
+    return const_iterator(node, root_);
 }
 
 template<typename Key, typename T, typename Compare, typename Allocator>
@@ -213,32 +214,32 @@ template<typename Key, typename T, typename Compare, typename Allocator>
 typename Tree<Key, T, Compare, Allocator>::iterator
 Tree<Key, T, Compare, Allocator>::begin() noexcept {
     if (!root_) return end();
-    return iterator(get_min_node());
+    return iterator(get_min_node(), root_);
 }
 
 template<typename Key, typename T, typename Compare, typename Allocator>
 typename Tree<Key, T, Compare, Allocator>::const_iterator
 Tree<Key, T, Compare, Allocator>::begin() const noexcept {
     if (!root_) return end();
-    return const_iterator(get_min_node());
+    return const_iterator(get_min_node(), root_);
 }
 
 template<typename Key, typename T, typename Compare, typename Allocator>
 typename Tree<Key, T, Compare, Allocator>::const_iterator
 Tree<Key, T, Compare, Allocator>::cbegin() const noexcept {
-    return begin();
+    return begin(); // cbegin uses begin() with root_ set in iterator constructor
 }
 
 template<typename Key, typename T, typename Compare, typename Allocator>
 typename Tree<Key, T, Compare, Allocator>::iterator
 Tree<Key, T, Compare, Allocator>::end() noexcept {
-    return iterator(nullptr);
+    return iterator(nullptr, root_);
 }
 
 template<typename Key, typename T, typename Compare, typename Allocator>
 typename Tree<Key, T, Compare, Allocator>::const_iterator
 Tree<Key, T, Compare, Allocator>::end() const noexcept {
-    return const_iterator(nullptr);
+    return const_iterator(nullptr, root_, root_);
 }
 
 template<typename Key, typename T, typename Compare, typename Allocator>
@@ -250,7 +251,7 @@ Tree<Key, T, Compare, Allocator>::cend() const noexcept {
 template<typename Key, typename T, typename Compare, typename Allocator>
 typename Tree<Key, T, Compare, Allocator>::reverse_iterator
 Tree<Key, T, Compare, Allocator>::rbegin() noexcept {
-    return reverse_iterator(end());
+    return reverse_iterator(end()); // operator-- on end() iterator is implemented in Iterator
 }
 
 template<typename Key, typename T, typename Compare, typename Allocator>

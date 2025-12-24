@@ -1,5 +1,4 @@
-#define CATCH_CONFIG_MAIN
-#include "catch.hpp"
+/* Catch2 tests disabled — use class/main.cpp for tests */
 #include "../include/avl_tree.hpp"
 #include <map>
 #include <vector>

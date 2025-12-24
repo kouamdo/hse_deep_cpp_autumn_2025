@@ -8,6 +8,9 @@
 #include <iterator>
 #include <utility>
 
+// Node is defined in its own header
+#include "avl_node.hpp"
+
 namespace avl {
 
 // Exceptions
@@ -21,12 +24,8 @@ public:
     invalid_iterator(const std::string& what);
 };
 
-// Forward declarations
-template<typename Key, typename T>
-struct Node;
-
-template<typename Key, typename T, bool Const = false>
-class Iterator;
+#include "avl_common.hpp"
+#include "avl_iterator.hpp"
 
 // Main AVL Tree class
 template<
