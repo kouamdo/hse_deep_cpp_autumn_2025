@@ -43,6 +43,7 @@ TEST(FormatTest, ClosingWithoutOpening) {
         Format<> f("text }");
         f.parse();
     }, FormatError);
+}
 
 
 // Erreur : indice hors borne

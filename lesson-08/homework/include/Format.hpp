@@ -1,73 +1,78 @@
 #ifndef FORMAT_HPP
 #define FORMAT_HPP
 
-#include <cstdint>
-#include <stdexcept>
-#include <iostream>
-#include <tuple>
+#include <string>
 #include <sstream>
 #include <stdexcept>
-#include <string>
+#include <tuple>
+#include <vector>
+#include <cctype>
+#include <utility>
 
-#pragma once
+struct FormatError : public std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
 
 template<typename... Args>
-class Format
-{
-    private:
-        /* data */
-        std::string format_str;
-        std::tuple<Args...> args;
-        std::stringstream result_stream;
+class Format {
+public:
+    explicit Format(const std::string& fmt, Args&&... args)
+        : fmt_(fmt), args_(std::forward<Args>(args)...) {}
 
-    public:
+    void parse() {
+        // Convert arguments to strings
+        arg_strings_ = std::apply([](auto&&... xs) {
+            return std::vector<std::string>{ toString(xs)... };
+        }, args_);
 
-        template<template T>
-        std::string argToSrtring(const T& value) const
-        {
-            std::stringstream ss ; 
+        result_.str("");
+        result_.clear();
 
-            ss << value ;
+        const size_t n = fmt_.size();
+        for (size_t i = 0; i < n; ++i) {
+            char c = fmt_[i];
+            if (c == '{') {
+                ++i;
+                if (i >= n) throw FormatError("Accolade ouvrante sans fermeture");
+                if (!std::isdigit(static_cast<unsigned char>(fmt_[i])))
+                    throw FormatError("Indice non numérique dans les accolades");
 
-            return ss.str();
-        }
+                int idx = 0;
+                while (i < n && std::isdigit(static_cast<unsigned char>(fmt_[i]))) {
+                    idx = idx * 10 + (fmt_[i] - '0');
+                    ++i;
+                }
 
-        template<std::size_t Index>
-        std::string getArgByIndex() const {
-            if constexpr (Index >= sizeof...(Args))
-                throw std::out_of_range("Indice argument hors limites");
-            else
-                return argToString(std::get<Index>(args));
-        }
+                if (i >= n || fmt_[i] != '}')
+                    throw FormatError("Accolade non fermée ou syntaxe incorrecte");
 
-        std::string getArg(std::size_t index) const {
-        // On doit dispatcher l’index à la bonne surcharge getArgByIndex
-        // Comme std::get requiert un index en constexpr, ici une implémentation simple :
-            switch (index) {
-                #define CASE(i) case i: return getArgByIndex<i>();
-                CASE(0)
-                CASE(1)
-                CASE(2)
-                CASE(3)
-                CASE(4)
-                // Ajouter autant de cases que le nombre maximum d’arguments attendus
-                #undef CASE
-                default: throw std::out_of_range("Argument index hors limites");
+                if (idx < 0 || static_cast<size_t>(idx) >= arg_strings_.size())
+                    throw std::out_of_range("Argument index hors limites");
+
+                result_ << arg_strings_[idx];
+
+            } else if (c == '}') {
+                throw FormatError("Accolade fermante sans ouvrante correspondante");
+            } else {
+                result_ << c;
             }
         }
-        
-        
-        Format(const std::string& fmt, Args&&... arguments)
-        : format_str(fmt),
-          args(std::forward<Args>(arguments)...) {}
+    }
 
-        Format();
+    std::string str() const { return result_.str(); }
 
-        void parse();
+private:
+    template<typename T>
+    static std::string toString(const T& v) {
+        std::ostringstream ss;
+        ss << v;
+        return ss.str();
+    }
 
-        std::string str();
-
-        ~Format();
+    std::string fmt_;
+    std::tuple<Args...> args_{};
+    std::vector<std::string> arg_strings_;
+    std::ostringstream result_;
 };
 
 #endif
